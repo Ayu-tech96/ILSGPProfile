@@ -313,6 +313,39 @@ body{
 /* corner deco */
 .corner-deco{position:fixed;bottom:10px;right:12px;font-size:8px;color:var(--tx4);font-family:var(--sans);letter-spacing:.05em;opacity:.4;pointer-events:none}
 
+/* custom profile editable grid */
+.cgt{border-collapse:collapse;min-width:100%;font-size:clamp(9px,1.1vw,10px)}
+.cgt th{
+  background:var(--bg3);padding:4px 6px;border:1px solid var(--bdr);
+  color:var(--tx3);font-weight:700;position:sticky;top:0;
+  white-space:nowrap;font-family:var(--sans);font-size:clamp(8px,1vw,9px);
+  text-align:center;z-index:2;
+}
+.cgt th.fix-col{left:0;z-index:3;text-align:left}
+.cgt td{padding:0;border:1px solid var(--bdr);text-align:center}
+.cgt td.row-hdr{
+  background:var(--bg3);color:var(--tx2);font-family:var(--mono);
+  font-weight:700;white-space:nowrap;padding:3px 6px;
+  position:sticky;left:0;z-index:1;font-size:clamp(8px,1vw,9px);
+  min-width:60px;text-align:left;
+}
+.cgt td.row-hdr.ant-r{background:rgba(212,136,32,.15);color:var(--amber)}
+.cgt td.row-hdr.thr-r{background:rgba(18,184,128,.1);color:var(--teal)}
+.cgt td input[type=number]{
+  width:100%;min-width:58px;box-sizing:border-box;
+  background:var(--bg4);border:none;outline:none;
+  color:var(--tx);font-family:var(--mono);font-size:clamp(9px,1.1vw,10px);
+  text-align:center;padding:3px 2px;
+  -moz-appearance:textfield;height:28px;
+  transition:background .1s;
+}
+.cgt td input[type=number]::-webkit-inner-spin-button,
+.cgt td input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none}
+.cgt td input[type=number]:focus{background:rgba(30,156,216,.12);color:var(--tx)}
+.cgt td input[type=number].has-val{background:rgba(30,156,216,.1)}
+.cgt td.ant-c input[type=number]{background:rgba(212,136,32,.18)!important}
+.cgt td.thr-c input[type=number]{background:rgba(18,184,128,.08)!important}
+
 /* ════════════════════════════════════════════
    TABLET  (≤ 900px) — sidebar becomes drawer
    ════════════════════════════════════════════ */
@@ -421,6 +454,7 @@ body{
     <div class="sb-hdr">Navigation</div>
     <div class="nav-item active" onclick="goto('setup')" id="nav-setup"><span class="ni-ico">⚙</span>Station setup</div>
     <div class="nav-item" onclick="goto('upload')" id="nav-upload"><span class="ni-ico">⊞</span>Profile data<span class="ni-bdg" id="nb-up">—</span></div>
+    <div class="nav-item" onclick="goto('custom')" id="nav-custom"><span class="ni-ico">✏</span>Custom profile<span class="ni-bdg" id="nb-custom" style="background:rgba(18,184,128,.12);border-color:var(--teal2);color:var(--teal)">NEW</span></div>
     <div class="nav-item" onclick="goto('results')" id="nav-results"><span class="ni-ico">▤</span>Results</div>
     <div class="nav-item" onclick="goto('terrain')" id="nav-terrain"><span class="ni-ico">◟</span>Terrain &amp; OCS</div>
     <div class="nav-item" onclick="goto('calib')" id="nav-calib"><span class="ni-ico">✈</span>Calibration</div>
@@ -607,6 +641,98 @@ body{
       <line x1="540" y1="78" x2="584" y2="78" stroke="#3d6a90" stroke-width="1" marker-end="url(#arr)"/>
     </svg>
     <button class="tbtn btn-run" onclick="goto('upload')">Next: upload profile data →</button>
+  </div>
+
+  <!-- ── CUSTOM PROFILE ── -->
+  <div class="page" id="page-custom">
+    <div class="sec"><div class="sec-txt">Custom ground profile — define your own grid</div><div class="sec-line"></div></div>
+
+    <!-- Step 1: Grid dimensions -->
+    <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:3px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3);font-family:var(--sans);margin-bottom:10px">Step 1 — Define grid dimensions</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px">
+
+        <div>
+          <label style="font-size:10px;color:var(--tx2);display:block;margin-bottom:4px;font-family:var(--sans);font-weight:600">Number of rows (longitudinal)<br><span style="font-size:8px;color:var(--tx4);font-weight:400">Along runway axis</span></label>
+          <input class="inp" type="number" id="cust-nrows" value="54" min="2" max="200" step="1" style="width:100%">
+        </div>
+
+        <div>
+          <label style="font-size:10px;color:var(--tx2);display:block;margin-bottom:4px;font-family:var(--sans);font-weight:600">Row spacing (m)<br><span style="font-size:8px;color:var(--tx4);font-weight:400">Distance between rows</span></label>
+          <input class="inp" type="number" id="cust-rowstep" value="10" min="1" max="100" step="1" style="width:100%">
+        </div>
+
+        <div>
+          <label style="font-size:10px;color:var(--tx2);display:block;margin-bottom:4px;font-family:var(--sans);font-weight:600">First row distance (m from THR)<br><span style="font-size:8px;color:var(--tx4);font-weight:400">Negative = into runway. e.g. −380</span></label>
+          <input class="inp" type="number" id="cust-rowstart" value="-380" step="10" style="width:100%">
+        </div>
+
+        <div>
+          <label style="font-size:10px;color:var(--tx2);display:block;margin-bottom:4px;font-family:var(--sans);font-weight:600">Number of columns (lateral)<br><span style="font-size:8px;color:var(--tx4);font-weight:400">Perpendicular to runway</span></label>
+          <input class="inp" type="number" id="cust-ncols" value="16" min="1" max="50" step="1" style="width:100%">
+        </div>
+
+        <div>
+          <label style="font-size:10px;color:var(--tx2);display:block;margin-bottom:4px;font-family:var(--sans);font-weight:600">Column spacing (m)<br><span style="font-size:8px;color:var(--tx4);font-weight:400">Distance between columns</span></label>
+          <input class="inp" type="number" id="cust-colstep" value="10" min="1" max="100" step="1" style="width:100%">
+        </div>
+
+        <div>
+          <label style="font-size:10px;color:var(--tx2);display:block;margin-bottom:4px;font-family:var(--sans);font-weight:600">First column distance (m from C/L)<br><span style="font-size:8px;color:var(--tx4);font-weight:400">Closest lateral to C/L. e.g. 0</span></label>
+          <input class="inp" type="number" id="cust-colstart" value="0" min="0" max="300" step="5" style="width:100%">
+        </div>
+
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="tbtn btn-run" onclick="buildCustomGrid()" style="min-width:140px">⊞ Generate grid</button>
+        <div style="font-size:9px;color:var(--tx3);font-family:var(--sans)" id="cust-gridsize"></div>
+      </div>
+    </div>
+
+    <!-- Step 2: Editable grid -->
+    <div id="cust-grid-section" style="display:none">
+      <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:3px;padding:12px 14px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+          <div>
+            <div style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3);font-family:var(--sans)">Step 2 — Enter elevation data (m AMSL)</div>
+            <div style="font-size:9px;color:var(--tx4);margin-top:3px;font-family:var(--sans)">
+              Type values directly · Paste from Excel/spreadsheet (Ctrl+V / Cmd+V into any cell) ·
+              <span style="color:var(--amber)">★</span> = mast position · <span style="color:var(--teal)">THR</span> = threshold row
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="tbtn" style="border-color:var(--bdr3);color:var(--tx2);font-size:9px;padding:4px 10px" onclick="clearCustomGrid()">✕ Clear all</button>
+            <button class="tbtn" style="border-color:var(--bdr3);color:var(--tx2);font-size:9px;padding:4px 10px" onclick="fillCustomGrid()">⟳ Fill with THR elev.</button>
+            <button class="tbtn" style="border-color:var(--bdr3);color:var(--tx2);font-size:9px;padding:4px 10px" onclick="exportCustomCSV()">↓ Export CSV</button>
+          </div>
+        </div>
+
+        <!-- The editable table goes here -->
+        <div style="overflow:auto;max-height:min(55vh,380px);-webkit-overflow-scrolling:touch;border:1px solid var(--bdr);border-radius:2px" id="cust-tbl-wrap"></div>
+
+        <div style="display:flex;gap:12px;margin-top:6px;font-size:9px;color:var(--tx3);font-family:var(--sans);flex-wrap:wrap">
+          <span><span style="display:inline-block;width:10px;height:10px;background:rgba(30,156,216,.15);border:1px solid var(--blue2);vertical-align:middle;margin-right:3px"></span>Has value</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:var(--bg3);border:1px solid var(--bdr2);vertical-align:middle;margin-right:3px"></span>Empty (will use THR elev. as fallback)</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:rgba(212,136,32,.2);border:1px solid var(--amber2);vertical-align:middle;margin-right:3px"></span>Mast ★</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:rgba(18,184,128,.12);border:1px solid var(--teal2);vertical-align:middle;margin-right:3px"></span>THR row</span>
+        </div>
+      </div>
+
+      <!-- Step 3: Use data -->
+      <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:3px;padding:12px 14px;margin-bottom:10px">
+        <div style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3);font-family:var(--sans);margin-bottom:8px">Step 3 — Load into analyzer</div>
+        <div style="font-size:10px;color:var(--tx3);font-family:var(--sans);margin-bottom:10px;line-height:1.6">
+          Click the button below to load your entered data as the active ground profile.
+          The app will switch to the Profile Data page showing the grid preview,
+          then run analysis when you click <b style="color:var(--blue)">▶ Run analysis</b>.
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="tbtn btn-run" onclick="useCustomGrid()" style="min-width:180px">✓ Use this data for analysis</button>
+          <div style="font-size:9px;color:var(--tx3);font-family:var(--sans)" id="cust-status"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ── UPLOAD ── -->
@@ -866,6 +992,220 @@ function sslAt(longDist, lat){
   const e2=getElev(longDist, Math.min(150,lat+step));
   const span=Math.min(150,lat+step)-Math.max(0,lat-step);
   return span>0 ? (e2-e1)/span : 0;
+}
+
+// ════════════════════════════════════════════════════════
+//  CUSTOM PROFILE — build editable grid
+// ════════════════════════════════════════════════════════
+let custMeta = null; // stores grid definition while editing
+
+function buildCustomGrid(){
+  const nRows    = Math.max(2, Math.min(200, parseInt(document.getElementById('cust-nrows').value)||54));
+  const rowStep  = Math.max(1, parseFloat(document.getElementById('cust-rowstep').value)||10);
+  const rowStart = parseFloat(document.getElementById('cust-rowstart').value)||-380;
+  const nCols    = Math.max(1, Math.min(50,  parseInt(document.getElementById('cust-ncols').value)||16));
+  const colStep  = Math.max(1, parseFloat(document.getElementById('cust-colstep').value)||10);
+  const colStart = Math.max(0, parseFloat(document.getElementById('cust-colstart').value)||0);
+
+  // Build arrays of row distances (long) and column distances (lateral)
+  const longDists = [];
+  for(let i=0;i<nRows;i++) longDists.push(Math.round((rowStart + i*rowStep)*100)/100);
+
+  const latDists = [];
+  for(let i=0;i<nCols;i++) latDists.push(Math.round((colStart + i*colStep)*100)/100);
+
+  custMeta = {longDists, latDists, nRows, nCols, rowStep, rowStart, colStep, colStart};
+
+  const antOff = parseInt(document.getElementById('antOff').value)||300;
+  const antLat = parseInt(document.getElementById('antLat').value)||120;
+  const mastRow = -antOff;
+
+  // Find closest row and column to mast position
+  const closestRow = longDists.reduce((a,b)=>Math.abs(b-mastRow)<Math.abs(a-mastRow)?b:a);
+  const closestCol = latDists.reduce((a,b)=>Math.abs(b-antLat)<Math.abs(a-antLat)?b:a);
+
+  document.getElementById('cust-gridsize').textContent =
+    `${nRows} rows × ${nCols} cols = ${nRows*nCols} cells  |  Long: ${rowStart}m to ${rowStart+(nRows-1)*rowStep}m  |  Lat: ${colStart}m to ${colStart+(nCols-1)*colStep}m from C/L`;
+
+  // Build table HTML
+  let h = `<table class="cgt" id="custTable">`;
+  h += `<thead><tr><th class="fix-col">Dist from THR (m)</th>`;
+  latDists.forEach(lat => { h += `<th>${lat}m</th>`; });
+  h += `</tr></thead><tbody>`;
+
+  longDists.forEach((ld, ri) => {
+    const isThr = ld===0;
+    const isAnt = ld===closestRow;
+    const trClass = isAnt ? 'ant-r' : isThr ? 'thr-r' : '';
+    h += `<tr>`;
+    h += `<td class="row-hdr ${trClass}">${ld}${isAnt?' ★':isThr?' [THR]':''}</td>`;
+    latDists.forEach((lat, ci) => {
+      const isAntCell = isAnt && lat===closestCol;
+      const isThrCell = isThr;
+      const tdCls = isAntCell ? 'ant-c' : isThrCell ? 'thr-c' : '';
+      const cellId = `c_${ri}_${ci}`;
+      h += `<td class="${tdCls}"><input type="number" id="${cellId}" step="0.001" placeholder="—"
+        oninput="onCustCell(this)"
+        onpaste="onCustPaste(event,${ri},${ci})"
+        onkeydown="onCustKey(event,${ri},${ci})"
+        autocomplete="off"></td>`;
+    });
+    h += `</tr>`;
+  });
+
+  h += `</tbody></table>`;
+  document.getElementById('cust-tbl-wrap').innerHTML = h;
+  document.getElementById('cust-grid-section').style.display = 'block';
+  document.getElementById('cust-status').textContent = '';
+
+  // Scroll to section
+  document.getElementById('cust-grid-section').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function onCustCell(inp){
+  // Update cell colour based on whether it has a value
+  inp.classList.toggle('has-val', inp.value !== '');
+}
+
+// Arrow-key navigation between cells
+function onCustKey(e, ri, ci){
+  const {nRows, nCols} = custMeta || {};
+  if(!nRows) return;
+  let nr=ri, nc=ci;
+  if(e.key==='ArrowDown'||e.key==='Enter'){nr=Math.min(nRows-1,ri+1);}
+  else if(e.key==='ArrowUp'){nr=Math.max(0,ri-1);}
+  else if(e.key==='ArrowRight'&&e.target.selectionStart===e.target.value.length){nc=Math.min(nCols-1,ci+1);}
+  else if(e.key==='ArrowLeft'&&e.target.selectionStart===0){nc=Math.max(0,ci-1);}
+  else if(e.key==='Tab'){nc=ci+(e.shiftKey?-1:1);if(nc<0){nc=nCols-1;nr=Math.max(0,ri-1);}if(nc>=nCols){nc=0;nr=Math.min(nRows-1,ri+1);} e.preventDefault();}
+  else return;
+  const target=document.getElementById(`c_${nr}_${nc}`);
+  if(target){target.focus();target.select();e.preventDefault();}
+}
+
+// Paste handler — accepts tab/comma-separated data pasted from Excel/spreadsheet
+function onCustPaste(e, startRow, startCol){
+  e.preventDefault();
+  const raw = (e.clipboardData||window.clipboardData).getData('text');
+  if(!raw||!custMeta) return;
+
+  // Parse: rows split by \n, cells by \t (Excel) or , (CSV)
+  const lines = raw.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l=>l.trim()!=='');
+  const {nRows, nCols} = custMeta;
+
+  lines.forEach((line, dr) => {
+    const ri = startRow + dr;
+    if(ri >= nRows) return;
+    const cells = line.includes('\t') ? line.split('\t') : line.split(',');
+    cells.forEach((val, dc) => {
+      const ci = startCol + dc;
+      if(ci >= nCols) return;
+      const inp = document.getElementById(`c_${ri}_${ci}`);
+      if(!inp) return;
+      const cleaned = val.trim().replace(/[^\d.\-]/g,'');
+      inp.value = cleaned;
+      inp.classList.toggle('has-val', cleaned !== '');
+    });
+  });
+
+  // Update status
+  const filled = countCustomFilled();
+  document.getElementById('cust-status').textContent =
+    `Pasted — ${filled} cells filled so far.`;
+}
+
+function countCustomFilled(){
+  if(!custMeta) return 0;
+  let n=0;
+  for(let ri=0;ri<custMeta.nRows;ri++)
+    for(let ci=0;ci<custMeta.nCols;ci++){
+      const inp=document.getElementById(`c_${ri}_${ci}`);
+      if(inp&&inp.value.trim()!=='') n++;
+    }
+  return n;
+}
+
+function clearCustomGrid(){
+  if(!custMeta) return;
+  for(let ri=0;ri<custMeta.nRows;ri++)
+    for(let ci=0;ci<custMeta.nCols;ci++){
+      const inp=document.getElementById(`c_${ri}_${ci}`);
+      if(inp){inp.value='';inp.classList.remove('has-val');}
+    }
+  document.getElementById('cust-status').textContent='Grid cleared.';
+}
+
+function fillCustomGrid(){
+  if(!custMeta) return;
+  const thrE = getThr();
+  for(let ri=0;ri<custMeta.nRows;ri++)
+    for(let ci=0;ci<custMeta.nCols;ci++){
+      const inp=document.getElementById(`c_${ri}_${ci}`);
+      if(inp&&inp.value.trim()===''){
+        inp.value=thrE.toFixed(3);
+        inp.classList.add('has-val');
+      }
+    }
+  document.getElementById('cust-status').textContent=
+    `Empty cells filled with threshold elevation (${thrE} m AMSL). Overwrite as needed.`;
+}
+
+function exportCustomCSV(){
+  if(!custMeta){alert('Generate a grid first.');return;}
+  let csv=['# ILS GP Analyzer — Custom ground profile','# Dist_from_THR(m),' + custMeta.latDists.map(l=>l+'m_from_CL').join(',')];
+  for(let ri=0;ri<custMeta.nRows;ri++){
+    const row=[custMeta.longDists[ri]];
+    for(let ci=0;ci<custMeta.nCols;ci++){
+      const inp=document.getElementById(`c_${ri}_${ci}`);
+      row.push(inp&&inp.value.trim()!==''?inp.value.trim():'');
+    }
+    csv.push(row.join(','));
+  }
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv.join('\n')],{type:'text/csv'}));
+  a.download='GP_custom_profile.csv';
+  a.click();
+}
+
+function useCustomGrid(){
+  if(!custMeta){alert('Generate a grid first.');return;}
+  const {longDists, latDists, nRows, nCols} = custMeta;
+  const rows={};
+  let filled=0, total=nRows*nCols;
+
+  for(let ri=0;ri<nRows;ri++){
+    const ld=longDists[ri];
+    rows[ld]={};
+    for(let ci=0;ci<nCols;ci++){
+      const inp=document.getElementById(`c_${ri}_${ci}`);
+      const v=inp?parseFloat(inp.value.trim()):NaN;
+      rows[ld][latDists[ci]]=isNaN(v)?null:parseFloat(v.toFixed(3));
+      if(!isNaN(v)&&inp&&inp.value.trim()!=='') filled++;
+    }
+  }
+
+  if(filled===0){
+    document.getElementById('cust-status').textContent='⚠ No values entered. Enter at least some elevation data first.';
+    return;
+  }
+
+  gridData = {longDists:[...longDists], latDists:[...latDists], rows};
+
+  const pct=Math.round(filled/total*100);
+  setBadge(`Custom profile — ${nRows}×${nCols}, ${filled}/${total} filled (${pct}%)`,
+    pct<30?'warn':'ok');
+  document.getElementById('nb-up').textContent=nRows+'r';
+  document.getElementById('nb-custom').textContent='✓';
+  document.getElementById('nb-custom').style.background='rgba(18,184,128,.15)';
+  document.getElementById('nb-custom').style.borderColor='var(--teal2)';
+  document.getElementById('nb-custom').style.color='var(--teal)';
+
+  document.getElementById('cust-status').textContent=
+    `✓ Loaded — ${filled} cells (${pct}%). Go to Profile Data to verify, then Run Analysis.`;
+
+  liveUpdate();
+
+  // Navigate to upload/preview page
+  goto('upload');
 }
 
 function countFilled(){
@@ -1576,6 +1916,16 @@ function resetAll(){
   });
   if(tCI){tCI.destroy();tCI=null;}
   if(cCI){cCI.destroy();cCI=null;}
+  // reset custom profile
+  custMeta=null;
+  const cgs=document.getElementById('cust-grid-section');
+  if(cgs) cgs.style.display='none';
+  const cst=document.getElementById('cust-status');
+  if(cst) cst.textContent='';
+  const cgsz=document.getElementById('cust-gridsize');
+  if(cgsz) cgsz.textContent='';
+  const nbCustom=document.getElementById('nb-custom');
+  if(nbCustom){nbCustom.textContent='NEW';nbCustom.style.background='rgba(18,184,128,.12)';nbCustom.style.borderColor='var(--teal2)';nbCustom.style.color='var(--teal)';}
   goto('setup');
 }
 
