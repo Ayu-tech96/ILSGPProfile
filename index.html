@@ -507,8 +507,8 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
       <div class="sec"><div class="sec-txt">NF monitor — position &amp; installation height</div><div class="sec-line"></div></div>
       <div class="r3" id="nfCards"></div>
 
-      <div class="sec"><div class="sec-txt">RDH / TCH — reference datum height</div><div class="sec-line"></div></div>
-      <div class="r2" id="rdhCards"></div>
+      <div class="sec"><div class="sec-txt">RDH / TCH — reference datum height &amp; correction solutions</div><div class="sec-line"></div></div>
+      <div id="rdhCards" style="margin-bottom:12px"></div>
 
       <div class="sec"><div class="sec-txt">OCS status &amp; site parameters</div><div class="sec-line"></div></div>
       <div class="r3" id="siteCards"></div>
@@ -695,6 +695,15 @@ function getElev(longDist, lat=0){
 
 function slopeAt(ld){ return (getElev(ld+60,0)-getElev(ld-60,0))/120; }
 
+// Sideways slope (SSL) at mast position — elevation change per metre lateral
+function sslAt(longDist, lat){
+  const step=10;
+  const e1=getElev(longDist, Math.max(0,lat-step));
+  const e2=getElev(longDist, Math.min(150,lat+step));
+  const span=Math.min(150,lat+step)-Math.max(0,lat-step);
+  return span>0 ? (e2-e1)/span : 0;
+}
+
 function countFilled(){
   if(!gridData) return{filled:0,total:0};
   let f=0,t=0;
@@ -758,9 +767,13 @@ function loadSample(){
     });
   });
   gridData={longDists:lds,latDists:lats,rows};
-  setBadge(`Sample — ${lds.length}×${lats.length} grid @ THR=${thrE}m`,'ok');
+  setBadge(`Sample — ${lds.length}×${lats.length} grid loaded @ THR=${thrE} m AMSL`,'ok');
   document.getElementById('nb-up').textContent=lds.length+'r';
+  // Update sidebar live values only — do NOT run analysis automatically
   liveUpdate();
+  // Show grid preview on upload page and navigate there
+  renderPreview();
+  goto('upload');
 }
 
 // ════════════════════════════════════════════════════════
@@ -910,6 +923,23 @@ function runAnalysis(){
   const rdhOk=rdh>=14&&rdh<=18, rdhWarn=!rdhOk&&rdh>=12&&rdh<=20;
   const req_off=reqOff(15.0,mastElev,h_lo_c,p.theta,thrGE);
 
+  // RDH solution via LATERAL distance (C/L offset)
+  // Changing lateral moves mast across the sideways slope (SSL)
+  // delta_RDH = delta_lat * SSL  =>  new_lat = old_lat + (15 - rdh) / SSL
+  // SSL computed from grid: elevation change per metre lateral at mast row
+  const ssl_raw=sslAt(-antOff, antLat);
+  const ssl_nonzero = Math.abs(ssl_raw)>0.0001 ? ssl_raw : null;
+  const rdh_deficit = 15.0 - rdh; // positive = need more RDH, negative = too high
+  let req_lat_abs = null, req_lat_dir = '';
+  if(ssl_nonzero !== null){
+    const delta_lat = rdh_deficit / ssl_nonzero;
+    req_lat_abs = Math.round(antLat + delta_lat);
+    req_lat_dir = delta_lat > 0 ? 'increase lateral (move further from C/L)' : 'decrease lateral (move closer to C/L)';
+    // clamp to grid bounds
+    if(req_lat_abs < 10) req_lat_abs = 10;
+    if(req_lat_abs > 150) req_lat_abs = 150;
+  }
+
   // Reflection point
   const denom=Math.tan(p.theta)+(mastElev-thrGE)/antOff;
   let rD=denom>0?antOff*Math.tan(p.theta)/denom:antOff*0.5;
@@ -983,30 +1013,68 @@ function runAnalysis(){
       <div class="rc-sub">Specular reflection point. Fresnel zone radius: ${frR.toFixed(1)} m. Terrain must be flat and clear within this zone. Slope correction: ${(sCorr>=0?'+':'')+sCorr.toFixed(3)} m.</div>
     </div>`;
 
-  // ── RDH CARDS ──
+  // ── RDH CARDS — now 3 cards (computed, offset solution, lateral solution) ──
   const rdhCls=rdhOk?'rc-ok':rdhWarn?'rc-warn':'rc-err';
+  const off_diff = Math.abs(antOff - Math.round(req_off));
+  const off_action = antOff > req_off
+    ? `Move mast ${off_diff} m closer to THR`
+    : antOff < req_off
+      ? `Move mast ${off_diff} m further from THR`
+      : 'No change needed';
+
+  const lat_card = ssl_nonzero !== null ? `
+    <div class="rcard rc-b">
+      <div class="rc-label">Solution B — Adjust C/L distance</div>
+      <div class="rc-formula">new_lat = lat + (15−RDH) / SSL</div>
+      <div class="rc-val">${req_lat_abs}</div>
+      <div class="rc-unit">m from runway centreline</div>
+      <div class="rc-sub">
+        <span style="color:var(--tx3)">Current lateral:</span> <b style="color:var(--tx)">${antLat} m</b> &nbsp;→&nbsp; <b style="color:var(--blue)">${req_lat_abs} m</b><br>
+        <span style="color:var(--tx3)">Side slope (SSL):</span> <b style="color:var(--tx)">${(ssl_nonzero*1000).toFixed(2)} mm/m</b><br>
+        <span style="color:var(--tx3)">RDH change needed:</span> <b style="color:var(--tx)">${rdh_deficit>=0?'+':''}${rdh_deficit.toFixed(2)} m</b><br>
+        <span style="color:${Math.abs(antLat-(req_lat_abs||antLat))>5?'var(--amber)':'var(--teal)'}">→ ${req_lat_dir}</span>
+      </div>
+    </div>` : `
+    <div class="rcard rc-b">
+      <div class="rc-label">Solution B — Adjust C/L distance</div>
+      <div class="rc-formula">new_lat = lat + (15−RDH) / SSL</div>
+      <div class="rc-val" style="font-size:14px;margin-top:6px">N/A</div>
+      <div class="rc-unit">SSL not computable</div>
+      <div class="rc-sub">
+        Sideways slope (SSL) could not be computed from the current grid data at the mast position.<br>
+        Provide elevation data at multiple lateral distances to enable this solution.
+      </div>
+    </div>`;
+
   document.getElementById('rdhCards').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
     <div class="rcard ${rdhCls}">
       <div class="rc-label">RDH / TCH — computed</div>
-      <div class="rc-formula">(mastElev+h_lo−thrElev)+offset×tanθ</div>
-      <div class="rc-val ${rdhOk?'t':rdhWarn?'w':'e'}">${rdh.toFixed(2)}</div>
-      <div class="rc-unit">meters &nbsp;(${rdh_ft.toFixed(0)} ft)</div>
+      <div class="rc-formula">(mastElev + h_lo − thrElev) + offset × tanθ</div>
+      <div class="rc-val ${rdhOk?'t':rdhWarn?'w':'e'}" style="font-size:28px">${rdh.toFixed(2)}</div>
+      <div class="rc-unit" style="font-size:11px;margin-top:4px"><b>${rdh_ft.toFixed(0)} ft</b> &nbsp;|&nbsp; ICAO standard: <b>15 m ± 3 m</b> (50 ft ± 10 ft)</div>
       <div class="rc-sub">
-        ICAO Annex 10 standard: <b>15 m ± 3 m</b>  (50 ft ± 10 ft)<br>
-        ${rdhOk?'✓ Within ICAO tolerance':rdhWarn?'⚠ Marginal — verify with flight check':'✗ Outside tolerance — adjust mast offset'}<br>
-        Mast elev: ${mastElev.toFixed(2)} m &nbsp; THR elev: ${thrGE.toFixed(2)} m
+        <span style="color:var(--tx3)">Mast ground:</span> <b>${mastElev.toFixed(3)} m AMSL</b><br>
+        <span style="color:var(--tx3)">THR ground:</span> <b>${thrGE.toFixed(3)} m AMSL</b><br>
+        <span style="color:var(--tx3)">Height diff:</span> <b>${(mastElev-thrGE>=0?'+':'')+(mastElev-thrGE).toFixed(3)} m</b><br>
+        <span style="font-size:10px;color:${rdhOk?'var(--teal)':rdhWarn?'var(--amber)':'var(--red)'}">
+          ${rdhOk?'✓ Within ICAO tolerance':rdhWarn?'⚠ Marginal — verify by flight check':'✗ Outside tolerance — correction required'}
+        </span>
       </div>
     </div>
     <div class="rcard rc-p">
-      <div class="rc-label">Required offset for RDH = 15 m</div>
-      <div class="rc-formula">(15−mastElev−h_lo+thrElev)/tanθ</div>
+      <div class="rc-label">Solution A — Adjust offset from THR</div>
+      <div class="rc-formula">(15 − mastElev − h_lo + thrElev) / tanθ</div>
       <div class="rc-val">${Math.round(req_off)}</div>
-      <div class="rc-unit">meters from threshold</div>
+      <div class="rc-unit">m from threshold (longitudinal)</div>
       <div class="rc-sub">
-        Current offset: <b>${antOff} m</b> → RDH = ${rdh.toFixed(2)} m<br>
-        Change to <b>${Math.round(req_off)} m</b> → RDH = 15.0 m exactly<br>
-        ${Math.abs(antOff-Math.round(req_off))>3?(antOff>req_off?'→ Move mast '+Math.abs(antOff-Math.round(req_off))+'m closer to THR':'→ Move mast '+Math.abs(antOff-Math.round(req_off))+'m further from THR'):'Current offset is correct (< 3m change needed)'}
+        <span style="color:var(--tx3)">Current offset:</span> <b style="color:var(--tx)">${antOff} m</b> → RDH = ${rdh.toFixed(2)} m<br>
+        <span style="color:var(--tx3)">Required offset:</span> <b style="color:var(--purple)">${Math.round(req_off)} m</b> → RDH = 15.0 m<br>
+        <span style="color:var(--tx3)">Change needed:</span> <b style="color:var(--tx)">${off_diff} m</b><br>
+        <span style="color:${off_diff>3?'var(--amber)':'var(--teal)'}">→ ${off_action}</span>
       </div>
+    </div>
+    ${lat_card}
     </div>`;
 
   // ── SITE CARDS ──
@@ -1069,7 +1137,9 @@ function runAnalysis(){
     ['RDH = (mastElev+h_lo−thrElev)+offset×tanθ',rdh.toFixed(4)+' m  ('+rdh_ft.toFixed(1)+' ft)'],
     ['ICAO standard','15.0 m (50 ft) ± 3 m'],
     ['RDH status',rdhOk?'✓ Within tolerance':rdhWarn?'⚠ Marginal — verify':'✗ Outside tolerance'],
-    ['Required offset for 15.0 m RDH',req_off.toFixed(1)+' m'],
+    ['Solution A: Required offset for RDH=15m',req_off.toFixed(1)+' m from THR  (change: '+(req_off-antOff>=0?'+':'')+(req_off-antOff).toFixed(1)+' m)'],
+    ['Sideways slope SSL at mast position',(ssl_raw*1000).toFixed(3)+' mm/m'],
+    ssl_nonzero!==null?['Solution B: Required C/L distance for RDH=15m',req_lat_abs+' m from C/L  (change: '+(req_lat_abs-antLat>=0?'+':'')+(req_lat_abs-antLat)+' m)']:['Solution B: C/L adjustment','SSL≈0 — lateral adjustment has negligible effect'],
     ['— OCS —',''],
     ['OCS surface angle θ+1.75°',(tDeg+1.75).toFixed(2)+'°'],
     ['Violations (cells with data only)',viol.length+(ocsOk?' — clear':' — action required')],
@@ -1084,8 +1154,13 @@ function runAnalysis(){
   ).join('');
 
   // ── ALERTS ──
-  const als=[{t:'info',m:`${sysNames[sys]} | NF monitor: ${nf_dist.toFixed(0)} m from mast at ${nf_height.toFixed(2)} m AGL${sys==='SR'?' (at 2θ = '+(2*tDeg).toFixed(1)+'°)':''} | λ = ${p.lam.toFixed(4)} m | θ = ${tDeg}°`}];
-  if(!rdhOk) als.push({t:rdhWarn?'warn':'err',m:`RDH = ${rdh.toFixed(2)} m (${rdh_ft.toFixed(0)} ft). ICAO standard 15 m ± 3 m. Move mast to ${Math.round(req_off)} m from THR to achieve 15 m RDH.`});
+  const als=[{t:'info',m:`${sysNames[sys]} | NF monitor: ${nf_dist.toFixed(0)} m from mast at ${nf_height.toFixed(2)} m AGL${sys==='SR'?' (monitor at 2θ = '+(2*tDeg).toFixed(1)+'°)':''} | λ = ${p.lam.toFixed(4)} m | θ = ${tDeg}°`}];
+  if(!rdhOk){
+    let rdhMsg=`RDH = ${rdh.toFixed(2)} m (${rdh_ft.toFixed(0)} ft). ICAO standard 15 m ± 3 m.`;
+    rdhMsg+=` Solution A: move offset to ${Math.round(req_off)} m from THR.`;
+    if(ssl_nonzero!==null) rdhMsg+=` Solution B: move C/L distance to ${req_lat_abs} m (${req_lat_dir}).`;
+    als.push({t:rdhWarn?'warn':'err',m:rdhMsg});
+  }
   if(!ocsOk) als.push({t:'err',m:`${viol.length} terrain point(s) penetrate ICAO OCS surface (θ+1.75° = ${(tDeg+1.75).toFixed(2)}°). Annex 10 §3.1.5 mitigation required.`});
   if(Math.abs(sCorr)>0.15) als.push({t:'warn',m:`Terrain slope correction = ${(sCorr>=0?'+':'')+sCorr.toFixed(3)} m. Verify survey accuracy at reflection zone row ≈ −${Math.round(rD)} m.`});
   if(rdhOk&&ocsOk) als.push({t:'ok',m:`All ICAO Annex 10 criteria satisfied. ${gpSide==='left'?'Left':'Right'} GP (${sysNamesShort[sys]}) at ${icao} RWY ${rwy} — site acceptable for installation.`});
@@ -1288,6 +1363,11 @@ function exportReport(){
     '',
     'RDH / TCH',
     'RDH: '+rdh+' m  (ICAO standard: 15.0 m +/- 3 m)',
+    'Solution A - Required offset for RDH=15m: '+reqOff(15,mastElev,p.h_lo,p.theta,thrGE).toFixed(1)+' m from THR',
+    'Sideways slope SSL at mast position: '+(sslAt(-antOff,antLat)*1000).toFixed(3)+' mm/m',
+    (()=>{const ssl=sslAt(-antOff,antLat);if(Math.abs(ssl)<0.0001)return 'Solution B - C/L adjustment: SSL~0 - lateral adjustment not effective';
+      const dRDH=15-(parseFloat(rdh)); const dLat=dRDH/ssl; const nLat=Math.round(Math.min(150,Math.max(10,antLat+dLat)));
+      return 'Solution B - Required C/L distance for RDH=15m: '+nLat+' m from C/L (change '+(dLat>=0?'+':'')+dLat.toFixed(1)+' m)';})(),
     '',
     'GROUND PROFILE','Row(m),Lat(m),Elev(m AMSL)'
   ].filter(l=>l!==undefined);
