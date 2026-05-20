@@ -268,7 +268,7 @@ body{
 .alert-ico{font-size:14px;flex-shrink:0;margin-top:1px}
 
 /* data grid */
-.gtw{overflow:auto;max-height:min(50vh,220px);border:1px solid var(--bdr);border-radius:2px;-webkit-overflow-scrolling:touch}
+.gtw{overflow:auto;max-height:min(65vh,480px);border:1px solid var(--bdr);border-radius:2px;-webkit-overflow-scrolling:touch}
 .gt{font-size:clamp(8px,1vw,9px);border-collapse:collapse;min-width:100%}
 .gt th{background:var(--bg3);padding:4px 6px;border:1px solid var(--bdr);color:var(--tx3);font-weight:700;position:sticky;top:0;white-space:nowrap;font-family:var(--sans)}
 .gt td{padding:3px 6px;border:1px solid var(--bdr);color:var(--tx3);text-align:right;font-family:var(--mono)}
@@ -505,15 +505,15 @@ body{
         <input class="inp" type="number" id="antLat" value="120" min="10" max="150" step="5" oninput="liveUpdate()">
       </div>
       <div class="live-box">
-        <div class="lb-title">Quick reference (RF params only)</div>
-        <div class="lr"><span class="lk">Excel row</span><span class="lv b" id="lb-row">—</span></div>
-        <div class="lr"><span class="lk">h_lower (flat ground)</span><span class="lv t" id="lb-h1">—</span></div>
-        <div class="lr"><span class="lk">NF dist. (flat ground)</span><span class="lv p" id="lb-nf">—</span></div>
-        <div class="lr"><span class="lk">NF height (flat ground)</span><span class="lv p" id="lb-nfh">—</span></div>
-        <div class="lr" style="padding-top:5px;border-top:1px dashed var(--bdr2);margin-top:3px"><span class="lk" style="color:var(--tx3)">Mast elev. (from data)</span><span class="lv a" id="lb-elev" style="color:var(--tx3)">load data first</span></div>
-        <div class="lr"><span class="lk" style="color:var(--tx3)">RDH (from data)</span><span class="lv" id="lb-rdh" style="color:var(--tx3)">load data first</span></div>
+        <div class="lb-title">Quick reference (RF parameters only)</div>
+        <div class="lr"><span class="lk">Excel row (mast)</span><span class="lv b" id="lb-row">—</span></div>
+        <div class="lr"><span class="lk">h_lower [est., flat gnd]</span><span class="lv t" id="lb-h1">—</span></div>
+        <div class="lr"><span class="lk">NF dist. [est., flat gnd]</span><span class="lv p" id="lb-nf">—</span></div>
+        <div class="lr"><span class="lk">NF height [est., flat gnd]</span><span class="lv p" id="lb-nfh">—</span></div>
+        <div class="lr" style="padding-top:5px;border-top:1px dashed var(--bdr2);margin-top:3px"><span class="lk" style="color:var(--tx3)">Mast elev. (needs data)</span><span class="lv a" id="lb-elev" style="color:var(--tx4)">load data first</span></div>
+        <div class="lr"><span class="lk" style="color:var(--tx3)">RDH pre-run (needs data)</span><span class="lv" id="lb-rdh" style="color:var(--tx4)">load data first</span></div>
       </div>
-      <div style="font-size:8px;color:var(--tx4);padding:0 0 6px 2px;line-height:1.5;font-family:var(--sans)">(flat ground) = no slope correction, indicative only.<br>Actual corrected values appear in Results after analysis.</div>
+      <div style="font-size:8px;color:var(--tx4);padding:0 0 6px 2px;line-height:1.5;font-family:var(--sans)">[est.] = flat-ground estimate, no slope correction.<br><b style="color:var(--tx3)">Final corrected values:</b> Results page after ▶ Run Analysis.</div>
     </div>
   </div>
 
@@ -697,8 +697,12 @@ body{
           <div>
             <div style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3);font-family:var(--sans)">Step 2 — Enter elevation data (m AMSL)</div>
             <div style="font-size:9px;color:var(--tx4);margin-top:3px;font-family:var(--sans)">
-              Type values directly · Paste from Excel/spreadsheet (Ctrl+V / Cmd+V into any cell) ·
-              <span style="color:var(--amber)">★</span> = mast position · <span style="color:var(--teal)">THR</span> = threshold row
+              Grid layout matches Lagoon proforma format —
+              columns = lateral distances from C/L (largest → smallest, left to right),
+              rows = longitudinal distances from THR (negative = into runway).
+              <span style="color:var(--amber)">★</span> = mast ·
+              <span style="color:var(--teal)">THR</span> = threshold row ·
+              Paste a block from Excel using Ctrl+V / Cmd+V into any cell.
             </div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -765,30 +769,52 @@ body{
     <div class="empty" id="res-empty"><span class="empty-ico">⌗</span><p>Run analysis to view results</p></div>
     <div id="res-content" style="display:none">
 
-      <div class="sec"><div class="sec-txt" id="ant-title">Antenna element heights from mast base</div><div class="sec-line"></div></div>
+      <!-- Antenna heights -->
+      <div class="sec"><div class="sec-txt" id="ant-title">Antenna element heights — above mast base</div><div class="sec-line"></div></div>
       <div class="r3" id="antCards"></div>
 
-      <div class="sec"><div class="sec-txt">NF monitor — position &amp; installation height</div><div class="sec-line"></div></div>
+      <!-- NF Monitor -->
+      <div class="sec"><div class="sec-txt">NF monitor — distance from mast &amp; installation height</div><div class="sec-line"></div></div>
       <div class="r3" id="nfCards"></div>
 
-      <div class="sec"><div class="sec-txt">RDH / TCH — reference datum height &amp; correction solutions</div><div class="sec-line"></div></div>
+      <!-- RDH -->
+      <div class="sec"><div class="sec-txt">RDH / TCH — reference datum height &amp; correction</div><div class="sec-line"></div></div>
       <div id="rdhCards" style="margin-bottom:12px"></div>
 
-      <div class="sec"><div class="sec-txt">OCS status &amp; site parameters</div><div class="sec-line"></div></div>
+      <!-- Site parameters (always visible) -->
+      <div class="sec"><div class="sec-txt">Site parameters</div><div class="sec-line"></div></div>
       <div class="r3" id="siteCards"></div>
 
+      <!-- OCS — OPTIONAL, off by default -->
+      <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:3px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px" id="ocsToggleBar">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--tx2);font-family:var(--sans)">OCS Check — Obstacle Clearance Surface</div>
+          <div style="font-size:9px;color:var(--tx3);font-family:var(--sans);margin-top:2px">ICAO Annex 10 §3.1.5 — OCS angle = θ + 1.75°. Only cells with actual elevation data are checked.</div>
+        </div>
+        <button class="tbtn" id="ocsToggleBtn" onclick="toggleOCS()"
+          style="border-color:var(--bdr3);color:var(--tx2);font-size:10px;padding:6px 14px;min-width:130px">
+          ▼ Show OCS check
+        </button>
+      </div>
+      <div id="ocsSection" style="display:none;margin-bottom:12px">
+        <div class="r3" id="ocsCards" style="margin-bottom:8px"></div>
+        <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:3px;padding:10px 14px">
+          <div id="ocsList"></div>
+        </div>
+      </div>
+
+      <!-- Parameters tab -->
       <div class="tab-row">
         <div class="tab active" onclick="showTab('params')">Full parameter table</div>
-        <div class="tab" onclick="showTab('ocs')">OCS violations</div>
+        <div class="tab" onclick="showTab('alerts')">Alerts &amp; status</div>
       </div>
       <div id="tab-params" class="tpane active">
         <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:3px;padding:10px 14px;margin-bottom:10px">
           <table class="ptbl" id="paramTable"></table>
         </div>
-        <div id="alertList"></div>
       </div>
-      <div id="tab-ocs" class="tpane">
-        <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:3px;padding:10px 14px"><div id="ocsList"></div></div>
+      <div id="tab-alerts" class="tpane">
+        <div id="alertList"></div>
       </div>
     </div>
   </div>
@@ -866,7 +892,7 @@ body{
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 'use strict';
-let gpSide='left', gridData=null, tCI=null, cCI=null;
+let gpSide='left', gridData=null, tCI=null, cCI=null, lastAnalysis=null;
 
 // ════════════════════════════════════════════════════════
 //  ANTENNA PHYSICS — all three systems
@@ -987,11 +1013,15 @@ function slopeAt(ld){ return (getElev(ld+60,0)-getElev(ld-60,0))/120; }
 
 // Sideways slope (SSL) at mast position — elevation change per metre lateral
 function sslAt(longDist, lat){
-  const step=10;
-  const e1=getElev(longDist, Math.max(0,lat-step));
-  const e2=getElev(longDist, Math.min(150,lat+step));
-  const span=Math.min(150,lat+step)-Math.max(0,lat-step);
-  return span>0 ? (e2-e1)/span : 0;
+  // Use actual grid lateral bounds (not hardcoded 0-150)
+  const lats = gridData ? gridData.latDists : [0];
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const step = lats.length > 1 ? Math.min(20, (maxLat - minLat) / Math.max(1, lats.length - 1) * 2) : 10;
+  const e1 = getElev(longDist, Math.max(minLat, lat - step));
+  const e2 = getElev(longDist, Math.min(maxLat, lat + step));
+  const span = Math.min(maxLat, lat + step) - Math.max(minLat, lat - step);
+  return span > 0 ? (e2 - e1) / span : 0;
 }
 
 // ════════════════════════════════════════════════════════
@@ -1007,48 +1037,72 @@ function buildCustomGrid(){
   const colStep  = Math.max(1, parseFloat(document.getElementById('cust-colstep').value)||10);
   const colStart = Math.max(0, parseFloat(document.getElementById('cust-colstart').value)||0);
 
-  // Build arrays of row distances (long) and column distances (lateral)
+  // Longitudinal positions (same as Lagoon rows)
   const longDists = [];
   for(let i=0;i<nRows;i++) longDists.push(Math.round((rowStart + i*rowStep)*100)/100);
 
+  // Lateral positions — store ascending (0 → max) but DISPLAY descending (max → 0) like Lagoon
   const latDists = [];
   for(let i=0;i<nCols;i++) latDists.push(Math.round((colStart + i*colStep)*100)/100);
+  // Display order: largest lateral first (matching Lagoon: 150, 140 ... 0)
+  const latDisplay = [...latDists].sort((a,b)=>b-a);
 
-  custMeta = {longDists, latDists, nRows, nCols, rowStep, rowStart, colStep, colStart};
+  custMeta = {longDists, latDists, latDisplay, nRows, nCols, rowStep, rowStart, colStep, colStart};
 
   const antOff = parseInt(document.getElementById('antOff').value)||300;
   const antLat = parseInt(document.getElementById('antLat').value)||120;
   const mastRow = -antOff;
 
-  // Find closest row and column to mast position
+  // Closest row and column to mast
   const closestRow = longDists.reduce((a,b)=>Math.abs(b-mastRow)<Math.abs(a-mastRow)?b:a);
   const closestCol = latDists.reduce((a,b)=>Math.abs(b-antLat)<Math.abs(a-antLat)?b:a);
 
+  const rowEnd = rowStart + (nRows-1)*rowStep;
+  const colEnd = colStart + (nCols-1)*colStep;
   document.getElementById('cust-gridsize').textContent =
-    `${nRows} rows × ${nCols} cols = ${nRows*nCols} cells  |  Long: ${rowStart}m to ${rowStart+(nRows-1)*rowStep}m  |  Lat: ${colStart}m to ${colStart+(nCols-1)*colStep}m from C/L`;
+    `${nRows} rows × ${nCols} cols = ${nRows*nCols} cells  │  Long: ${rowStart} m to ${rowEnd} m  │  Lat: ${colStart}–${colEnd} m from C/L`;
 
-  // Build table HTML
+  // ── Build table matching Lagoon format exactly ──
+  // Header: col 1 = distance label, col 2 = first lateral label ... last = longitudinal label
   let h = `<table class="cgt" id="custTable">`;
-  h += `<thead><tr><th class="fix-col">Dist from THR (m)</th>`;
-  latDists.forEach(lat => { h += `<th>${lat}m</th>`; });
-  h += `</tr></thead><tbody>`;
 
+  // Column header row (lateral distances, largest first — like Lagoon)
+  h += `<thead>`;
+  // Info row
+  h += `<tr>`;
+  h += `<th class="fix-col" style="background:var(--bg3);color:var(--tx3);font-size:8px;padding:3px 6px" colspan="1">Dist from<br>THR (m)</th>`;
+  latDisplay.forEach(lat => {
+    h += `<th style="min-width:58px;text-align:center">${lat}m<br><span style="font-size:7px;color:var(--tx4);font-weight:400">from C/L</span></th>`;
+  });
+  h += `</tr></thead>`;
+
+  h += `<tbody>`;
   longDists.forEach((ld, ri) => {
-    const isThr = ld===0;
-    const isAnt = ld===closestRow;
+    const isThr = ld === 0;
+    const isAnt = ld === closestRow;
     const trClass = isAnt ? 'ant-r' : isThr ? 'thr-r' : '';
+
     h += `<tr>`;
-    h += `<td class="row-hdr ${trClass}">${ld}${isAnt?' ★':isThr?' [THR]':''}</td>`;
-    latDists.forEach((lat, ci) => {
-      const isAntCell = isAnt && lat===closestCol;
+    // Row header — longitudinal distance
+    h += `<td class="row-hdr ${trClass}" title="${ld > 0 ? ld+'m toward approach' : ld < 0 ? Math.abs(ld)+'m into runway past THR' : 'THRESHOLD'}">`;
+    h += `${ld}${isAnt ? ' ★' : isThr ? ' [THR]' : ''}`;
+    h += `</td>`;
+
+    // Data cells — one per lateral column (displayed in descending order)
+    latDisplay.forEach(lat => {
+      const isAntCell = isAnt && lat === closestCol;
       const isThrCell = isThr;
       const tdCls = isAntCell ? 'ant-c' : isThrCell ? 'thr-c' : '';
+      // Cell ID encodes actual ri and the index of this lat in latDisplay
+      const ci = latDisplay.indexOf(lat);
       const cellId = `c_${ri}_${ci}`;
-      h += `<td class="${tdCls}"><input type="number" id="${cellId}" step="0.001" placeholder="—"
+      h += `<td class="${tdCls}">`;
+      h += `<input type="number" id="${cellId}" step="0.001" placeholder="—"
         oninput="onCustCell(this)"
         onpaste="onCustPaste(event,${ri},${ci})"
         onkeydown="onCustKey(event,${ri},${ci})"
-        autocomplete="off"></td>`;
+        autocomplete="off" inputmode="decimal">`;
+      h += `</td>`;
     });
     h += `</tr>`;
   });
@@ -1057,9 +1111,7 @@ function buildCustomGrid(){
   document.getElementById('cust-tbl-wrap').innerHTML = h;
   document.getElementById('cust-grid-section').style.display = 'block';
   document.getElementById('cust-status').textContent = '';
-
-  // Scroll to section
-  document.getElementById('cust-grid-section').scrollIntoView({behavior:'smooth',block:'start'});
+  document.getElementById('cust-grid-section').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 function onCustCell(inp){
@@ -1151,10 +1203,16 @@ function fillCustomGrid(){
 
 function exportCustomCSV(){
   if(!custMeta){alert('Generate a grid first.');return;}
-  let csv=['# ILS GP Analyzer — Custom ground profile','# Dist_from_THR(m),' + custMeta.latDists.map(l=>l+'m_from_CL').join(',')];
-  for(let ri=0;ri<custMeta.nRows;ri++){
-    const row=[custMeta.longDists[ri]];
-    for(let ci=0;ci<custMeta.nCols;ci++){
+  const {longDists, latDisplay, nRows, nCols} = custMeta;
+  // Header matching Lagoon column order: laterals largest-to-smallest, then longitudinal label
+  let csv=[
+    '# ILS GP Analyzer — Custom Ground Profile (Lagoon-compatible format)',
+    '# Lateral distances (m from C/L): ' + latDisplay.join(', '),
+    'Dist_from_THR(m),' + latDisplay.map(l=>l+'m_from_CL').join(',')
+  ];
+  for(let ri=0;ri<nRows;ri++){
+    const row=[longDists[ri]];
+    for(let ci=0;ci<nCols;ci++){
       const inp=document.getElementById(`c_${ri}_${ci}`);
       row.push(inp&&inp.value.trim()!==''?inp.value.trim():'');
     }
@@ -1168,7 +1226,7 @@ function exportCustomCSV(){
 
 function useCustomGrid(){
   if(!custMeta){alert('Generate a grid first.');return;}
-  const {longDists, latDists, nRows, nCols} = custMeta;
+  const {longDists, latDisplay, nRows, nCols} = custMeta;
   const rows={};
   let filled=0, total=nRows*nCols;
 
@@ -1178,7 +1236,8 @@ function useCustomGrid(){
     for(let ci=0;ci<nCols;ci++){
       const inp=document.getElementById(`c_${ri}_${ci}`);
       const v=inp?parseFloat(inp.value.trim()):NaN;
-      rows[ld][latDists[ci]]=isNaN(v)?null:parseFloat(v.toFixed(3));
+      // latDisplay[ci] gives the actual lateral distance for this column index
+      rows[ld][latDisplay[ci]]=isNaN(v)?null:parseFloat(v.toFixed(3));
       if(!isNaN(v)&&inp&&inp.value.trim()!=='') filled++;
     }
   }
@@ -1188,7 +1247,9 @@ function useCustomGrid(){
     return;
   }
 
-  gridData = {longDists:[...longDists], latDists:[...latDists], rows};
+  // latDists for getElev must be the sorted unique set
+  const latDists=[...new Set(latDisplay)].sort((a,b)=>a-b);
+  gridData = {longDists:[...longDists], latDists, rows};
 
   const pct=Math.round(filled/total*100);
   setBadge(`Custom profile — ${nRows}×${nCols}, ${filled}/${total} filled (${pct}%)`,
@@ -1198,13 +1259,9 @@ function useCustomGrid(){
   document.getElementById('nb-custom').style.background='rgba(18,184,128,.15)';
   document.getElementById('nb-custom').style.borderColor='var(--teal2)';
   document.getElementById('nb-custom').style.color='var(--teal)';
-
   document.getElementById('cust-status').textContent=
-    `✓ Loaded — ${filled} cells (${pct}%). Go to Profile Data to verify, then Run Analysis.`;
-
+    `✓ Loaded — ${filled} cells (${pct}%). Grid preview updated on Profile Data page.`;
   liveUpdate();
-
-  // Navigate to upload/preview page
   goto('upload');
 }
 
@@ -1228,31 +1285,39 @@ function liveUpdate(){
   const sysNames={MA:'M-Array',NR:'0-Ref (NR)',SR:'SB-Ref'};
 
   document.getElementById('lb-row').textContent='Row −'+off+'  ('+off+' m past THR)';
-  // Flat-ground nominal values (RF params only, no terrain)
-  document.getElementById('lb-h1').textContent=p.h_lo.toFixed(3)+' m *';
-  document.getElementById('lb-nf').textContent=p.nf_dist.toFixed(1)+' m *';
-  document.getElementById('lb-nfh').textContent=p.nf_height.toFixed(2)+' m *';
+  // RF-based nominal values (flat ground, no slope correction)
+  // Clearly marked [est.] = estimate only, not site data
+  document.getElementById('lb-h1').textContent=p.h_lo.toFixed(3)+' m [est.]';
+  document.getElementById('lb-nf').textContent=p.nf_dist.toFixed(1)+' m [est.]';
+  document.getElementById('lb-nfh').textContent=p.nf_height.toFixed(2)+' m [est.]';
   document.getElementById('sysChip').textContent=sysNames[sys];
 
   if(!gridData){
-    document.getElementById('lb-elev').textContent='— (load data first)';
-    document.getElementById('lb-elev').style.color='var(--tx3)';
-    document.getElementById('lb-rdh').textContent='— (load data first)';
-    document.getElementById('lb-rdh').style.color='var(--tx3)';
+    document.getElementById('lb-elev').textContent='— load data first';
+    document.getElementById('lb-elev').style.color='var(--tx4)';
+    document.getElementById('lb-rdh').textContent='— load data first';
+    document.getElementById('lb-rdh').style.color='var(--tx4)';
     document.getElementById('lb-rdh').className='lv';
+    // Clear RDH chip
+    const rc=document.getElementById('rdhChip');
+    rc.textContent='RDH —';
+    rc.style.borderColor='var(--bdr3)';
+    rc.style.color='var(--tx3)';
     return;
   }
   const mastElev=getElev(-off,lat), thrGE=getElev(0,0);
+  // RDH in liveUpdate uses nominal h_lo (no slope correction) — clearly a preview
+  // Final corrected RDH is shown in Results after Run Analysis
   const rdh=computeRDH(mastElev,p.h_lo,off,p.theta,thrGE);
   const rdh_ft=rdh*3.281;
   const rdhOk=rdh>=14&&rdh<=18, rdhWarn=!rdhOk&&rdh>=12&&rdh<=20;
   document.getElementById('lb-elev').textContent=mastElev.toFixed(3)+' m AMSL';
   document.getElementById('lb-elev').style.color='';
-  document.getElementById('lb-rdh').textContent=rdh.toFixed(2)+' m ('+rdh_ft.toFixed(0)+' ft)';
+  document.getElementById('lb-rdh').textContent=rdh.toFixed(2)+' m ('+rdh_ft.toFixed(0)+' ft) [pre-run est.]';
   document.getElementById('lb-rdh').style.color='';
   document.getElementById('lb-rdh').className='lv '+(rdhOk?'t':rdhWarn?'w':'e');
   const rc=document.getElementById('rdhChip');
-  rc.textContent='RDH '+rdh.toFixed(1)+'m';
+  rc.textContent='RDH ~'+rdh.toFixed(1)+'m';
   rc.style.borderColor=rdhOk?'var(--teal2)':rdhWarn?'var(--amber2)':'var(--red2)';
   rc.style.color=rdhOk?'var(--teal)':rdhWarn?'var(--amber)':'var(--red)';
   renderPreview();
@@ -1379,7 +1444,7 @@ function renderPreview(){
   const lats=[...gridData.latDists].sort((a,b)=>b-a);
   const allRows=[...gridData.longDists].sort((a,b)=>b-a);
   let h='<table class="gt"><thead><tr><th>Row (m)</th>'+lats.map(l=>`<th>${l}m</th>`).join('')+'</tr></thead><tbody>';
-  allRows.slice(0,40).forEach(ld=>{
+  allRows.forEach(ld=>{
     const isAnt=ld===antRow, isThr=ld===0;
     h+=`<tr><td class="fix${isAnt?' ar':isThr?' tr':''}">${ld}${isAnt?' ★':isThr?' [THR]':''}</td>`;
     lats.forEach(lc=>{
@@ -1389,7 +1454,6 @@ function renderPreview(){
     });
     h+='</tr>';
   });
-  if(allRows.length>40) h+=`<tr><td class="fix" colspan="${lats.length+1}" style="text-align:center;color:var(--tx4)">… ${allRows.length-40} more rows</td></tr>`;
   h+='</tbody></table>';
   document.getElementById('gridTbl').innerHTML=h;
 }
@@ -1444,10 +1508,12 @@ function runAnalysis(){
   if(ssl_nonzero !== null){
     const delta_lat = rdh_deficit / ssl_nonzero;
     req_lat_abs = Math.round(antLat + delta_lat);
-    req_lat_dir = delta_lat > 0 ? 'increase lateral (move further from C/L)' : 'decrease lateral (move closer to C/L)';
-    // clamp to grid bounds
-    if(req_lat_abs < 10) req_lat_abs = 10;
-    if(req_lat_abs > 150) req_lat_abs = 150;
+    req_lat_dir = delta_lat > 0 ? 'move further from C/L' : 'move closer to C/L';
+    // Clamp to actual grid lateral bounds
+    const minL = gridData ? Math.min(...gridData.latDists) : 0;
+    const maxL = gridData ? Math.max(...gridData.latDists) : 150;
+    if(req_lat_abs < minL) req_lat_abs = minL;
+    if(req_lat_abs > maxL) req_lat_abs = maxL;
   }
 
   // Reflection point
@@ -1589,26 +1655,48 @@ function runAnalysis(){
 
   // ── SITE CARDS ──
   document.getElementById('siteCards').innerHTML=`
-    <div class="rcard ${ocsOk?'rc-ok':'rc-err'}">
-      <div class="rc-label">OCS status</div>
-      <div class="rc-formula">angle = θ + 1.75°</div>
-      <div class="rc-val ${ocsOk?'t':'e'}">${ocsOk?'PASS':'FAIL'}</div>
-      <div class="rc-unit">ICAO Annex 10 §3.1.5</div>
-      <div class="rc-sub">${viol.length} violation(s). OCS angle = ${(tDeg+1.75).toFixed(2)}°. Only cells with actual data are checked.</div>
-    </div>
     <div class="rcard rc-t">
       <div class="rc-label">Mast ground elevation</div>
-      <div class="rc-formula">from uploaded grid</div>
-      <div class="rc-val">${mastElev.toFixed(2)}</div>
-      <div class="rc-unit">m AMSL — row −${antOff}, col ${antLat}m</div>
-      <div class="rc-sub">THR ground elev: ${thrGE.toFixed(2)} m AMSL<br>Height diff: ${(mastElev-thrGE>=0?'+':'')+((mastElev-thrGE).toFixed(2))} m<br>System: ${sysNames[sys]}</div>
+      <div class="rc-formula">read from uploaded grid</div>
+      <div class="rc-val">${mastElev.toFixed(3)}</div>
+      <div class="rc-unit">m AMSL  (row −${antOff}, col ${antLat}m)</div>
+      <div class="rc-sub">
+        THR ground elev: <b>${thrGE.toFixed(3)} m AMSL</b><br>
+        Elevation diff (mast−THR): <b>${(mastElev-thrGE>=0?'+':'')+((mastElev-thrGE).toFixed(3))} m</b><br>
+        Antenna system: <b>${sysNames[sys]}</b>
+      </div>
     </div>
     <div class="rcard rc-a">
-      <div class="rc-label">Slope correction on h_lo</div>
-      <div class="rc-formula">−slope×offset×0.5</div>
-      <div class="rc-val">${(sCorr>=0?'+':'')+sCorr.toFixed(3)}</div>
-      <div class="rc-unit">meters</div>
-      <div class="rc-sub">Forward slope: ${(sl*1000).toFixed(2)} mm/m<br>${Math.abs(sCorr)>0.15?'⚠ Significant — verify survey accuracy at row ≈ −'+Math.round(rD)+'m':'Within normal range'}</div>
+      <div class="rc-label">Terrain slope correction on h_lo</div>
+      <div class="rc-formula">sCorr = −slope × offset × 0.5</div>
+      <div class="rc-val">${(sCorr>=0?'+':'')+sCorr.toFixed(4)}</div>
+      <div class="rc-unit">meters added to h_lo nominal</div>
+      <div class="rc-sub">
+        Forward slope at refl. zone: <b>${(sl*1000).toFixed(3)} mm/m</b><br>
+        h_lo nominal → corrected: <b>${p.h_lo.toFixed(4)} → ${h_lo_c.toFixed(4)} m</b><br>
+        ${Math.abs(sCorr)>0.15?'⚠ Significant — verify survey at row ≈ −'+Math.round(rD)+'m':'✓ Small correction — within normal range'}
+      </div>
+    </div>
+    <div class="rcard rc-b">
+      <div class="rc-label">Reflection &amp; Fresnel zone</div>
+      <div class="rc-formula">specular geometry from terrain</div>
+      <div class="rc-val">${Math.round(rD)}</div>
+      <div class="rc-unit">m from mast toward THR</div>
+      <div class="rc-sub">
+        Fresnel zone radius: <b>${frR.toFixed(2)} m</b><br>
+        Terrain in this zone must be flat and unobstructed.<br>
+        OCS check: click <b>▼ Show OCS check</b> below.
+      </div>
+    </div>`;
+
+  // Populate OCS cards (in optional section)
+  document.getElementById('ocsCards').innerHTML=`
+    <div class="rcard ${ocsOk?'rc-ok':'rc-err'}" style="grid-column:span 1">
+      <div class="rc-label">OCS status</div>
+      <div class="rc-formula">OCS angle = θ + 1.75° = ${(tDeg+1.75).toFixed(2)}°</div>
+      <div class="rc-val ${ocsOk?'t':'e'}">${ocsOk?'PASS':'FAIL'}</div>
+      <div class="rc-unit">ICAO Annex 10 §3.1.5</div>
+      <div class="rc-sub">${viol.length} violation(s) found in cells with actual data.<br>OCS surface originates at mast (${mastElev.toFixed(2)} m + ${h_lo_c.toFixed(3)} m = ${(mastElev+h_lo_c).toFixed(3)} m AMSL) and slopes outward at ${(tDeg+1.75).toFixed(2)}°.</div>
     </div>`;
 
   // ── PARAMETER TABLE ──
@@ -1677,19 +1765,53 @@ function runAnalysis(){
   document.getElementById('alertList').innerHTML=als.map(a=>`<div class="alert ${a.t}"><span class="alert-ico">${a.t==='ok'?'✓':a.t==='info'?'ℹ':a.t==='warn'?'⚠':'✗'}</span><span>${a.m}</span></div>`).join('');
 
   // update topbar status
-  document.getElementById('sdot').className='sdot '+(ocsOk&&rdhOk?'ok':rdhWarn||!ocsOk?'warn':'err');
-  document.getElementById('stxt').textContent='Done — RDH='+rdh.toFixed(1)+'m NF='+nf_dist.toFixed(0)+'m OCS '+(ocsOk?'PASS':'FAIL');
-  document.getElementById('statusChip').textContent=ocsOk?'OCS PASS':'OCS FAIL';
-  document.getElementById('statusChip').style.borderColor=ocsOk?'var(--teal2)':'var(--red2)';
-  document.getElementById('statusChip').style.color=ocsOk?'var(--teal)':'var(--red)';
+  document.getElementById('sdot').className='sdot '+(rdhOk?'ok':rdhWarn?'warn':'err');
+  document.getElementById('stxt').textContent='Done — RDH='+rdh.toFixed(1)+'m  NF='+nf_dist.toFixed(0)+'m  '+sysNamesShort[sys];
+  // OCS chip shows status only if OCS was checked
+  document.getElementById('statusChip').textContent='RDH '+(rdhOk?'OK':rdhWarn?'MARGIN':'FAIL');
+  document.getElementById('statusChip').style.borderColor=rdhOk?'var(--teal2)':rdhWarn?'var(--amber2)':'var(--red2)';
+  document.getElementById('statusChip').style.color=rdhOk?'var(--teal)':rdhWarn?'var(--amber)':'var(--red)';
   const rc=document.getElementById('rdhChip');
   rc.textContent='RDH '+rdh.toFixed(1)+'m';
   rc.style.borderColor=rdhOk?'var(--teal2)':rdhWarn?'var(--amber2)':'var(--red2)';
   rc.style.color=rdhOk?'var(--teal)':rdhWarn?'var(--amber)':'var(--red)';
 
+  // Cache corrected results for export (uses slope-corrected heights)
+  lastAnalysis = {
+    sys, freq, tDeg, antOff, antLat, icao, rwy,
+    lam: p.lam, theta: p.theta, tanT: p.tanT,
+    h_lo_c, h_mid_c, h_hi_c,          // CORRECTED heights
+    h_lo_nom: p.h_lo,                   // nominal
+    nf_dist, nf_height, nfMonTheta: p.nfMonTheta,
+    rdh, rdh_ft, req_off, ssl: sslAt(-antOff, antLat),
+    mastElev, thrGE, sCorr, sl,
+    rD, frR, ocsOk, viol,
+    rdhOk, rdhWarn
+  };
+
   // draw charts
   drawTerrain(antOff,mastRow,mastElev,h_lo_c,rD,nf_dist,p.theta,ocsA);
   drawCalib(h_lo_c,p.lam,p.theta,nf_dist);
+  // Update OCS toggle bar hint
+  const ocsBar = document.getElementById('ocsToggleBar');
+  if(ocsBar){
+    const hint = ocsBar.querySelector('.ocs-hint');
+    if(hint) hint.remove();
+    const hintEl = document.createElement('div');
+    hintEl.className='ocs-hint';
+    hintEl.style.cssText='font-size:10px;font-family:var(--sans);font-weight:700;padding:4px 10px;border-radius:2px;';
+    if(viol.length===0){
+      hintEl.style.color='var(--teal)'; hintEl.textContent='✓ No violations (checked '+gridData.longDists.length+' rows)';
+    } else {
+      hintEl.style.color='var(--red)'; hintEl.textContent='✗ '+viol.length+' violation(s) — click Show OCS check';
+    }
+    ocsBar.insertBefore(hintEl, document.getElementById('ocsToggleBtn'));
+  }
+  const ocsS = document.getElementById('ocsSection');
+  if(ocsS) ocsS.style.display='none';
+  const ocsBtn = document.getElementById('ocsToggleBtn');
+  if(ocsBtn){ ocsBtn.textContent='▼ Show OCS check'; ocsBtn.style.borderColor='var(--bdr3)'; ocsBtn.style.color='var(--tx2)'; }
+
   drawOCS(viol,ocsOk);
 
   ['res','ter','cal'].forEach(x=>{
@@ -1790,9 +1912,24 @@ function drawOCS(viol,ok){
 }
 
 function showTab(n){
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['params','ocs'][i]===n));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.tpane').forEach(p=>p.classList.remove('active'));
-  document.getElementById('tab-'+n).classList.add('active');
+  const tabs = document.querySelectorAll('.tab-row .tab');
+  const panes = ['params','alerts'];
+  const idx = panes.indexOf(n);
+  if(idx>=0 && tabs[idx]) tabs[idx].classList.add('active');
+  const pane = document.getElementById('tab-'+n);
+  if(pane) pane.classList.add('active');
+}
+
+let ocsVisible = false;
+function toggleOCS(){
+  ocsVisible = !ocsVisible;
+  document.getElementById('ocsSection').style.display = ocsVisible ? 'block' : 'none';
+  const btn = document.getElementById('ocsToggleBtn');
+  btn.textContent = ocsVisible ? '▲ Hide OCS check' : '▼ Show OCS check';
+  btn.style.borderColor = ocsVisible ? 'var(--amber2)' : 'var(--bdr3)';
+  btn.style.color = ocsVisible ? 'var(--amber)' : 'var(--tx2)';
 }
 
 // ════════════════════════════════════════════════════════
@@ -1835,67 +1972,107 @@ function buildValidation(){
 // ════════════════════════════════════════════════════════
 function exportReport(){
   if(!gridData){alert('Run analysis first.');return;}
-  const icao=document.getElementById('icao').value||'XX';
-  const rwy=document.getElementById('rwy').value||'00';
-  const freq=parseFloat(document.getElementById('freq').value);
-  const glide=parseFloat(document.getElementById('glide').value);
-  const antOff=parseInt(document.getElementById('antOff').value);
-  const antLat=parseInt(document.getElementById('antLat').value);
-  const sys=document.getElementById('antSystem').value;
-  const p=antParams(sys,freq,glide);
-  const mastElev=getElev(-antOff,antLat);
-  const thrGE=getElev(0,0);
-  const rdh=(mastElev+p.h_lo-thrGE+antOff*p.tanT).toFixed(2);
+  if(!lastAnalysis){alert('Run analysis first — no analysis results cached.');return;}
+
+  const a = lastAnalysis;
   const sysNames={MA:'M-Array/Capture Effect',NR:'Null Reference (0-Ref)',SR:'Sideband Reference'};
-  let csv=[
+  const sysN = sysNames[a.sys];
+
+  // RDH Solution B
+  const ssl = a.ssl;
+  let solB;
+  if(Math.abs(ssl) < 0.0001){
+    solB = 'Solution B (C/L adjustment): SSL ≈ 0 — lateral adjustment has negligible effect';
+  } else {
+    const dRDH = 15 - a.rdh;
+    const dLat = dRDH / ssl;
+    const newLat = Math.round(a.antLat + dLat);
+    solB = `Solution B (C/L adjustment): Move to ${newLat} m from C/L (change ${dLat>=0?'+':''}${dLat.toFixed(1)} m) → RDH = 15.0 m`;
+  }
+
+  let csv = [
     'ILS GP ANALYZER v10.0',
     'Prepared by: Ayush Kaushik, AM (CNS), RCDU',
-    'Generated: '+new Date().toISOString().slice(0,19).replace('T',' '),
+    'Generated: ' + new Date().toISOString().slice(0,19).replace('T',' '),
     '',
-    'STATION',
-    'Airport: '+icao,'Runway: '+rwy,'GP side: '+gpSide,
-    'Antenna system: '+sysNames[sys],
-    'Offset from THR: '+antOff+' m','Lateral from C/L: '+antLat+' m',
-    'Frequency: '+freq+' MHz','Glide angle: '+glide+'°',
-    'Threshold elevation: '+getThr()+' m AMSL',
+    '--- STATION ---',
+    'Airport (ICAO): ' + (a.icao||'—'),
+    'Runway: ' + (a.rwy||'—'),
+    'GP side: ' + (gpSide==='left'?'Left GP':'Right GP'),
+    'Antenna system: ' + sysN,
     '',
-    'ANTENNA HEIGHTS (above mast base — corrected for terrain slope)',
-    sys==='NR'?'h_lower (CSB+SBO): '+p.h_lo.toFixed(3)+' m':
-    sys==='SR'?'h_lower (CSB+SBO anti-phase): '+p.h_lo.toFixed(3)+' m':
-              'h1 (Lower SBO): '+p.h_lo.toFixed(3)+' m',
-    ...(p.h_mid!=null?['h2 (Middle CSB): '+p.h_mid.toFixed(3)+' m']:[]),
-    sys!=='MA'?'h_upper (SBO): '+p.h_hi.toFixed(3)+' m':'h3 (Upper SBO): '+p.h_hi.toFixed(3)+' m',
+    '--- SITE PARAMETERS ---',
+    'GP frequency: ' + a.freq.toFixed(1) + ' MHz',
+    'Wavelength (λ): ' + a.lam.toFixed(4) + ' m',
+    'Glide angle (θ): ' + a.tDeg.toFixed(1) + '°',
+    'Threshold elevation: ' + getThr() + ' m AMSL',
+    'Mast offset from THR: ' + a.antOff + ' m  (Excel row −' + a.antOff + ')',
+    'Mast lateral from C/L: ' + a.antLat + ' m',
+    'Mast ground elevation: ' + a.mastElev.toFixed(3) + ' m AMSL  (read from grid)',
+    'Threshold ground elevation: ' + a.thrGE.toFixed(3) + ' m AMSL',
     '',
-    'NF MONITOR (formula: h_lower x (h_lower + h_upper) / lambda)',
-    'NF monitor distance: '+p.nf_dist.toFixed(2)+' m from mast',
-    'NF monitor antenna height: '+p.nf_height.toFixed(3)+' m AGL at '+p.nf_dist.toFixed(0)+'m position',
-    sys==='SR'?'Note: SR monitor elevation angle = 2x glide = '+(2*glide).toFixed(1)+'°':'',
+    '--- ANTENNA HEIGHTS (corrected for terrain slope) ---',
+    'NOTE: These are CORRECTED heights. Slope correction applied: ' + (a.sCorr>=0?'+':'') + a.sCorr.toFixed(4) + ' m  (forward slope = ' + (a.sl*1000).toFixed(2) + ' mm/m)',
+    a.sys==='NR' ? 'h_lower [CSB+SBO]  = ' + a.h_lo_c.toFixed(4) + ' m  (nominal flat: ' + a.h_lo_nom.toFixed(4) + ' m)' :
+    a.sys==='SR' ? 'h_lower [CSB+SBO anti-phase]  = ' + a.h_lo_c.toFixed(4) + ' m  (nominal flat: ' + a.h_lo_nom.toFixed(4) + ' m)' :
+                  'h₁ [Lower SBO]  = ' + a.h_lo_c.toFixed(4) + ' m  (nominal flat: ' + a.h_lo_nom.toFixed(4) + ' m)',
+    ...(a.h_mid_c!=null ? ['h₂ [Middle CSB]  = ' + a.h_mid_c.toFixed(4) + ' m'] : []),
+    a.sys==='NR' ? 'h_upper [SBO]  = ' + a.h_hi_c.toFixed(4) + ' m' :
+    a.sys==='SR' ? 'h_upper [SBO]  = ' + a.h_hi_c.toFixed(4) + ' m' :
+                  'h₃ [Upper SBO]  = ' + a.h_hi_c.toFixed(4) + ' m',
+    'Lower element AMSL: ' + (a.mastElev + a.h_lo_c).toFixed(3) + ' m',
+    ...(a.h_mid_c!=null ? ['Middle element AMSL: ' + (a.mastElev + a.h_mid_c).toFixed(3) + ' m'] : []),
+    'Upper element AMSL: ' + (a.mastElev + a.h_hi_c).toFixed(3) + ' m',
     '',
-    'RDH / TCH',
-    'RDH: '+rdh+' m  (ICAO standard: 15.0 m +/- 3 m)',
-    'Solution A - Required offset for RDH=15m: '+reqOff(15,mastElev,p.h_lo,p.theta,thrGE).toFixed(1)+' m from THR',
-    'Sideways slope SSL at mast position: '+(sslAt(-antOff,antLat)*1000).toFixed(3)+' mm/m',
-    (()=>{const ssl=sslAt(-antOff,antLat);if(Math.abs(ssl)<0.0001)return 'Solution B - C/L adjustment: SSL~0 - lateral adjustment not effective';
-      const dRDH=15-(parseFloat(rdh)); const dLat=dRDH/ssl; const nLat=Math.round(Math.min(150,Math.max(10,antLat+dLat)));
-      return 'Solution B - Required C/L distance for RDH=15m: '+nLat+' m from C/L (change '+(dLat>=0?'+':'')+dLat.toFixed(1)+' m)';})(),
+    '--- NF MONITOR (h_lo × (h_lo + h_hi) / λ — 360° phase-error point) ---',
+    'NF monitor distance: ' + a.nf_dist.toFixed(2) + ' m from mast',
+    'NF monitor antenna height: ' + a.nf_height.toFixed(3) + ' m AGL at the ' + a.nf_dist.toFixed(0) + ' m position',
+    'NF monitor elevation angle: ' + (a.sys==='SR' ? '2θ = ' + (2*a.tDeg).toFixed(1) + '°' : 'θ = ' + a.tDeg.toFixed(1) + '°'),
     '',
-    'GROUND PROFILE','Row(m),Lat(m),Elev(m AMSL)'
-  ].filter(l=>l!==undefined);
-  gridData.longDists.forEach(ld=>gridData.latDists.forEach(la=>{
-    const v=gridData.rows[ld]?.[la];
-    if(v!=null) csv.push(`${ld},${la},${v}`);
+    '--- RDH / TCH (ICAO Annex 10: 15.0 m ± 3 m) ---',
+    'Computed RDH: ' + a.rdh.toFixed(3) + ' m  (' + a.rdh_ft.toFixed(1) + ' ft)',
+    'ICAO tolerance: 12–18 m  |  Status: ' + (a.rdhOk?'✓ WITHIN tolerance':a.rdhWarn?'⚠ MARGINAL':'✗ OUTSIDE tolerance'),
+    'Solution A (adjust offset): Move mast to ' + a.req_off.toFixed(1) + ' m from THR → RDH = 15.0 m',
+    solB,
+    'Sideways slope (SSL) at mast: ' + (ssl*1000).toFixed(3) + ' mm/m',
+    '',
+    '--- OCS CHECK (ICAO Annex 10 §3.1.5, angle = θ + 1.75° = ' + (a.tDeg+1.75).toFixed(2) + '°) ---',
+    'OCS status: ' + (a.ocsOk ? 'PASS — no violations' : 'FAIL — ' + a.viol.length + ' violation(s)'),
+    ...(a.viol.length > 0 ? a.viol.map(v=>`  Row ${v.ld}m  (${v.dist}m from mast)  elev=${v.elev}m  penetrates by +${v.excess}m`) : []),
+    '',
+    '--- REFLECTION POINT ---',
+    'Specular reflection point: ' + a.rD.toFixed(1) + ' m from mast toward THR',
+    'Fresnel zone radius: ' + a.frR.toFixed(2) + ' m',
+    '',
+    '--- GROUND PROFILE DATA ---',
+    'Row(m from THR), Lat(m from C/L), Elevation(m AMSL)'
+  ];
+
+  gridData.longDists.forEach(ld => gridData.latDists.forEach(la => {
+    const v = gridData.rows[ld]?.[la];
+    if(v != null) csv.push(`${ld},${la},${v}`);
   }));
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([csv.join('\n')],{type:'text/csv'}));
-  a.download=`GP_${icao}_${rwy}_${gpSide}_${sys}_v10.csv`;
-  a.click();
+
+  const blob = new Blob([csv.join('\n')], {type:'text/csv'});
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `GP_${a.icao||'XX'}_${a.rwy||'00'}_${gpSide}_${a.sys}_v10.csv`;
+  link.click();
 }
 
 // ════════════════════════════════════════════════════════
 //  RESET
 // ════════════════════════════════════════════════════════
 function resetAll(){
-  gridData=null;
+  // reset OCS toggle
+  ocsVisible=false;
+  const ocsS=document.getElementById('ocsSection');
+  if(ocsS) ocsS.style.display='none';
+  const ocsBtn2=document.getElementById('ocsToggleBtn');
+  if(ocsBtn2){ocsBtn2.textContent='▼ Show OCS check';ocsBtn2.style.borderColor='var(--bdr3)';ocsBtn2.style.color='var(--tx2)';}
+  const ocsHint=document.querySelector('.ocs-hint');
+  if(ocsHint) ocsHint.remove();
+  gridData=null; lastAnalysis=null;
   document.getElementById('dpill').className='pill';
   document.getElementById('dtxt').textContent='No file loaded';
   document.getElementById('nb-up').textContent='—';
